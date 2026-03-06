@@ -6,25 +6,29 @@
 <title>GPG*T VDA — Weather Station</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
+
+  /* ── Design tokens ─────────────────────────────── */
   :root {
-    --surface: rgba(10, 13, 20, 0.65);
-    --border: rgba(255,255,255,0.18);
-    --accent: #00d4ff;
-    --accent2: #ff6b35;
-    --text: #ffffff;
-    --muted: rgba(255,255,255,0.65);
-    --warm: #ffb347;
+    --surface:  rgba(10, 13, 20, 0.65);
+    --border:   rgba(255,255,255,0.18);
+    --accent:   #00d4ff;
+    --accent2:  #ff6b35;
+    --text:     #ffffff;
+    --muted:    rgba(255,255,255,0.65);
+    --warm:     #ffb347;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
+  /* ── Full-viewport lock — no scrolling ─────────── */
+  html, body {
+    height: 100%;
+    overflow: hidden;
     color: var(--text);
     font-family: 'DM Mono', monospace;
-    min-height: 100vh;
-    overflow-x: hidden;
   }
 
+  /* ── Animated sky background layers ────────────── */
   #skyBg {
     position: fixed;
     inset: 0;
@@ -40,6 +44,7 @@
     transition: background 4s ease, opacity 3s ease;
   }
 
+  /* ── Rain canvas (sits above sky, below content) ── */
   #rainCanvas {
     position: fixed;
     inset: 0;
@@ -49,64 +54,68 @@
     transition: opacity 2s ease;
   }
 
+  /* ── Main layout wrapper — fills exactly one screen */
   .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 48px 40px;
     position: relative;
     z-index: 10;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 20px 10px;
+    gap: 8px;
   }
 
+  /* ── Glassmorphism card base ────────────────────── */
   .glass {
     background: var(--surface);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 2px solid var(--border);
-    border-radius: 16px;
+    border-radius: 12px;
+    animation: fadeUp 0.5s ease both;
   }
 
   .glass:hover { border-color: rgba(255,255,255,0.28); }
 
+  /* ── Header row ─────────────────────────────────── */
   header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 40px;
+    align-items: center;
+    flex-shrink: 0;
   }
 
   .station-id {
     font-family: 'Syne', sans-serif;
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 8px;
   }
 
   h1 {
     font-family: 'Syne', sans-serif;
-    font-size: clamp(42px, 6vw, 64px);
+    font-size: clamp(22px, 3vw, 32px);
     font-weight: 800;
     letter-spacing: -0.02em;
-    line-height: 1;
+    line-height: 1.1;
   }
 
   .header-meta {
-    font-size: 18px;
+    font-size: 12px;
     color: var(--muted);
-    margin-top: 8px;
   }
 
   .header-right { text-align: right; }
 
+  /* ── Live status indicator ──────────────────────── */
   .status-dot {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 8px; height: 8px;
     border-radius: 50%;
     background: #00ff88;
-    margin-right: 8px;
+    margin-right: 6px;
     animation: blink 2s ease-in-out infinite;
   }
 
@@ -114,11 +123,11 @@
 
   @keyframes blink {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    50%       { opacity: 0.3; }
   }
 
   .status-label {
-    font-size: 16px;
+    font-size: 12px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
@@ -126,24 +135,27 @@
 
   .last-updated {
     display: block;
-    font-size: 16px;
+    font-size: 11px;
     color: var(--muted);
-    margin-top: 8px;
+    margin-top: 2px;
   }
 
+  /* ── Hero row: temp + wind side by side ─────────── */
   .hero {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
-  .hero-temp {
-    padding: 48px;
+  .hero-temp,
+  .hero-wind {
+    padding: 14px 20px;
     position: relative;
     overflow: hidden;
   }
 
+  /* Subtle top-edge highlight on temp card */
   .hero-temp::before {
     content: '';
     position: absolute;
@@ -153,23 +165,23 @@
   }
 
   .hero-wind {
-    padding: 48px;
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    gap: 24px;
+    align-items: center;
   }
 
   .hero-label {
-    font-size: 15px;
+    font-size: 11px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 14px;
+    margin-bottom: 4px;
   }
 
+  /* Large temperature number */
   .hero-value {
     font-family: 'Syne', sans-serif;
-    font-size: clamp(80px, 10vw, 120px);
+    font-size: clamp(48px, 7vw, 80px);
     font-weight: 800;
     letter-spacing: -0.04em;
     line-height: 1;
@@ -177,72 +189,101 @@
   }
 
   .hero-value span {
-    font-size: 0.4em;
+    font-size: 0.38em;
     color: var(--muted);
     font-weight: 400;
     vertical-align: super;
   }
 
-  .hero-sub { font-size: 20px; color: var(--muted); margin-top: 14px; }
+  .hero-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
 
   .condition-badge {
     display: inline-block;
-    padding: 6px 16px;
+    padding: 3px 12px;
     border-radius: 20px;
-    font-size: 14px;
+    font-size: 11px;
     letter-spacing: 0.15em;
     text-transform: uppercase;
     background: rgba(255,255,255,0.10);
     border: 1px solid rgba(255,255,255,0.2);
-    margin-top: 12px;
+    margin-top: 6px;
   }
 
-  .grid {
+  /* Wind speed values in hero */
+  .wind-block { flex: 1; }
+
+  .wind-value {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 4.5vw, 56px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .wind-gust-value {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(26px, 3.5vw, 44px);
+    font-weight: 700;
+    color: var(--accent2);
+    line-height: 1;
+  }
+
+  /* ── Section label above card rows ─────────────── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-left: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── 4-column metric cards ──────────────────────── */
+  .grid,
+  .rain-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 14px;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
-  .card { padding: 28px 32px; }
+  /* ── 3-column comfort cards ─────────────────────── */
+  .comfort-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Card internals */
+  .card { padding: 10px 16px; }
 
   .card-label {
-    font-size: 14px;
+    font-size: 10px;
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 12px;
+    margin-bottom: 4px;
   }
 
   .card-value {
     font-family: 'Syne', sans-serif;
-    font-size: 38px;
+    font-size: clamp(18px, 2.2vw, 28px);
     font-weight: 700;
     letter-spacing: -0.02em;
+    line-height: 1.1;
   }
 
-  .section-label {
-    font-size: 14px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 12px;
-    margin-top: 20px;
-    padding-left: 4px;
-  }
-
-  .rain-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 14px;
-  }
-
+  /* Thin progress bar under rain values */
   .rain-bar {
-    height: 3px;
+    height: 2px;
     background: rgba(255,255,255,0.12);
     border-radius: 2px;
-    margin-top: 12px;
+    margin-top: 6px;
     overflow: hidden;
   }
 
@@ -253,23 +294,22 @@
     transition: width 1s ease;
   }
 
-  .comfort-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-  }
-
+  /* ── Footer ─────────────────────────────────────── */
   footer {
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 2px solid var(--border);
+    flex-shrink: 0;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
-  footer span { font-size: 15px; color: var(--muted); }
+  footer span {
+    font-size: 11px;
+    color: var(--muted);
+  }
 
+  /* ── Loading spinner overlay ────────────────────── */
   .loading-overlay {
     position: fixed;
     inset: 0;
@@ -281,10 +321,13 @@
     transition: opacity 0.6s;
   }
 
-  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
 
   .loader {
-    width: 40px; height: 40px;
+    width: 36px; height: 36px;
     border: 3px solid rgba(255,255,255,0.1);
     border-top-color: var(--accent);
     border-radius: 50%;
@@ -293,36 +336,41 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .glass { animation: fadeUp 0.5s ease both; }
-
+  /* ── Entrance animation for cards ───────────────── */
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
-  .blue { color: var(--accent); }
+  /* ── Utility color classes ──────────────────────── */
+  .blue   { color: var(--accent);  }
   .orange { color: var(--accent2); }
-  .warm { color: var(--warm); }
+  .warm   { color: var(--warm);    }
 
+  /* ── Mobile: reflow to 2-col where needed ───────── */
   @media (max-width: 768px) {
-    .hero { grid-template-columns: 1fr; }
-    .grid { grid-template-columns: repeat(2, 1fr); }
-    .rain-grid { grid-template-columns: repeat(2, 1fr); }
-    .comfort-grid { grid-template-columns: repeat(2, 1fr); }
-    header { flex-direction: column; gap: 16px; }
-    .header-right { text-align: left; }
+    .hero          { grid-template-columns: 1fr; }
+    .grid          { grid-template-columns: repeat(2, 1fr); }
+    .rain-grid     { grid-template-columns: repeat(2, 1fr); }
+    .comfort-grid  { grid-template-columns: repeat(2, 1fr); }
   }
+
 </style>
 </head>
 <body>
 
+<!-- Background layers (sky gradient, temp tint, rain) -->
 <div id="skyBg"></div>
 <div id="skyGlow"></div>
 <canvas id="rainCanvas"></canvas>
 
+<!-- Spinner shown until first data fetch completes -->
 <div class="loading-overlay" id="loader"><div class="loader"></div></div>
 
+<!-- ── Main layout ────────────────────────────────── -->
 <div class="container">
+
+  <!-- Station identity + live status -->
   <header>
     <div>
       <div class="station-id">Davis Vantage Pro 2</div>
@@ -338,6 +386,7 @@
     </div>
   </header>
 
+  <!-- Hero: temperature (left) + wind (right) -->
   <div class="hero">
     <div class="hero-temp glass">
       <div class="hero-label">Outside Temperature</div>
@@ -346,248 +395,332 @@
       <div class="condition-badge" id="conditionBadge">—</div>
     </div>
     <div class="hero-wind glass">
-      <div>
+      <div class="wind-block">
         <div class="hero-label">Wind</div>
-        <div class="hero-value" style="font-size:clamp(48px,6vw,80px);" id="wind">—</div>
+        <div class="wind-value" id="wind">—</div>
       </div>
-      <div style="margin-top:24px;">
+      <div class="wind-block">
         <div class="hero-label">10-Min Gust</div>
-        <div style="font-family:'Syne',sans-serif;font-size:44px;font-weight:700;color:var(--accent2);" id="windGust">—</div>
+        <div class="wind-gust-value" id="windGust">—</div>
       </div>
     </div>
   </div>
 
+  <!-- Core metrics row -->
   <div class="grid">
-    <div class="card glass"><div class="card-label">Humidity</div><div class="card-value blue" id="humidity">—</div></div>
-    <div class="card glass"><div class="card-label">Dewpoint</div><div class="card-value" id="dewpoint">—</div></div>
-    <div class="card glass"><div class="card-label">Barometer</div><div class="card-value" id="barometer">—</div></div>
-    <div class="card glass"><div class="card-label">Station Time</div><div class="card-value" style="font-size:28px;" id="stationTime">—</div></div>
+    <div class="card glass">
+      <div class="card-label">Humidity</div>
+      <div class="card-value blue" id="humidity">—</div>
+    </div>
+    <div class="card glass">
+      <div class="card-label">Dewpoint</div>
+      <div class="card-value" id="dewpoint">—</div>
+    </div>
+    <div class="card glass">
+      <div class="card-label">Barometer</div>
+      <div class="card-value" id="barometer">—</div>
+    </div>
+    <div class="card glass">
+      <div class="card-label">Station Time</div>
+      <div class="card-value" style="font-size:clamp(14px,1.8vw,22px);" id="stationTime">—</div>
+    </div>
   </div>
 
+  <!-- Precipitation section -->
   <div class="section-label">Precipitation</div>
   <div class="rain-grid">
-    <div class="card glass"><div class="card-label">Today</div><div class="card-value blue" id="rainToday">—</div><div class="rain-bar"><div class="rain-fill" id="rainTodayBar"></div></div></div>
-    <div class="card glass"><div class="card-label">Rain Rate</div><div class="card-value" id="rainRate">—</div></div>
-    <div class="card glass"><div class="card-label">Monthly</div><div class="card-value" id="rainMonthly">—</div><div class="rain-bar"><div class="rain-fill" id="rainMonthlyBar"></div></div></div>
-    <div class="card glass"><div class="card-label">Yearly</div><div class="card-value" id="rainYearly">—</div><div class="rain-bar"><div class="rain-fill" id="rainYearlyBar"></div></div></div>
+    <div class="card glass">
+      <div class="card-label">Today</div>
+      <div class="card-value blue" id="rainToday">—</div>
+      <div class="rain-bar"><div class="rain-fill" id="rainTodayBar"></div></div>
+    </div>
+    <div class="card glass">
+      <div class="card-label">Rain Rate</div>
+      <div class="card-value" id="rainRate">—</div>
+    </div>
+    <div class="card glass">
+      <div class="card-label">Monthly</div>
+      <div class="card-value" id="rainMonthly">—</div>
+      <div class="rain-bar"><div class="rain-fill" id="rainMonthlyBar"></div></div>
+    </div>
+    <div class="card glass">
+      <div class="card-label">Yearly</div>
+      <div class="card-value" id="rainYearly">—</div>
+      <div class="rain-bar"><div class="rain-fill" id="rainYearlyBar"></div></div>
+    </div>
   </div>
 
+  <!-- Comfort indices section -->
   <div class="section-label">Comfort Indices</div>
   <div class="comfort-grid">
-    <div class="card glass"><div class="card-label">Wind Chill</div><div class="card-value" id="windChill">—</div></div>
-    <div class="card glass"><div class="card-label">Heat Index</div><div class="card-value warm" id="heatIndex">—</div></div>
-    <div class="card glass"><div class="card-label">THW Index</div><div class="card-value" id="thwIndex">—</div></div>
+    <div class="card glass">
+      <div class="card-label">Wind Chill</div>
+      <div class="card-value" id="windChill">—</div>
+    </div>
+    <div class="card glass">
+      <div class="card-label">Heat Index</div>
+      <div class="card-value warm" id="heatIndex">—</div>
+    </div>
+    <div class="card glass">
+      <div class="card-label">THW Index</div>
+      <div class="card-value" id="thwIndex">—</div>
+    </div>
   </div>
 
+  <!-- Timestamp footer -->
   <footer>
     <span>Davis Vantage Pro 2 · Updates every 5 minutes</span>
     <span id="footerTime">—</span>
   </footer>
+
 </div>
 
 <script>
-const SUPABASE_URL = "https://zrieseuynwnpsfvplwfi.supabase.co";
-const SUPABASE_KEY = "sb_publishable_-OFTC5LLjm7JGOqDUohLGg_pSDwuTeO";
 
-const canvas = document.getElementById("rainCanvas");
-const ctx = canvas.getContext("2d");
-let drops = [], rainActive = false, animFrame;
+  // ── Supabase connection ──────────────────────────
+  const SUPABASE_URL = "https://zrieseuynwnpsfvplwfi.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_-OFTC5LLjm7JGOqDUohLGg_pSDwuTeO";
 
-function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  // ── Rain canvas setup ────────────────────────────
+  const canvas = document.getElementById("rainCanvas");
+  const ctx    = canvas.getContext("2d");
+  let drops = [], rainActive = false, animFrame;
 
-function initDrops(n) {
-  drops = Array.from({length: n}, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    len: Math.random() * 20 + 10,
-    speed: Math.random() * 4 + 3,
-    alpha: Math.random() * 0.25 + 0.08
-  }));
-}
-
-function drawRain() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drops.forEach(d => {
-    ctx.beginPath();
-    ctx.moveTo(d.x, d.y);
-    ctx.lineTo(d.x - 1, d.y + d.len);
-    ctx.strokeStyle = `rgba(174,214,241,${d.alpha})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    d.y += d.speed;
-    if (d.y > canvas.height) { d.y = -d.len; d.x = Math.random() * canvas.width; }
-  });
-  animFrame = requestAnimationFrame(drawRain);
-}
-
-function startRain(rate) {
-  resizeCanvas();
-  initDrops(Math.max(30, Math.floor(rate * 150)));
-  canvas.style.opacity = Math.min(rate * 0.7, 0.55);
-  if (!rainActive) { rainActive = true; drawRain(); }
-}
-
-function stopRain() {
-  canvas.style.opacity = 0;
-  setTimeout(() => { cancelAnimationFrame(animFrame); rainActive = false; ctx.clearRect(0,0,canvas.width,canvas.height); }, 2000);
-}
-
-window.addEventListener("resize", resizeCanvas);
-
-function parseHour(stationTimeStr) {
-  if (!stationTimeStr) return new Date().getHours();
-  const m = stationTimeStr.match(/(\d+):(\d+)([ap])/);
-  if (!m) return 12;
-  let h = parseInt(m[1]);
-  if (m[3] === "p" && h !== 12) h += 12;
-  if (m[3] === "a" && h === 12) h = 0;
-  return h;
-}
-
-function getSkyColors(hour) {
-  if (hour >= 5  && hour < 7)  return ["#0d0520","#3d1a6e","#c45c3c","#f5a623"];
-  if (hour >= 7  && hour < 11) return ["#0d1b3e","#1a3a6e","#2e6fa8","#87ceeb"];
-  if (hour >= 11 && hour < 15) return ["#0a1628","#1a3a6e","#2980b9","#5dade2"];
-  if (hour >= 15 && hour < 18) return ["#0d1b3e","#1a3a6e","#2471a3","#7fb3d3"];
-  if (hour >= 18 && hour < 20) return ["#1a0a2e","#6e2a1a","#c0392b","#e67e22"];
-  return ["#030510","#07091a","#0d0f2a","#111428"];
-}
-
-function getTempTint(tempF, rainRate) {
-  if (rainRate > 0) return "rgba(30,50,90,0.28)";
-  if (tempF >= 95)  return "rgba(180,50,0,0.15)";
-  if (tempF >= 85)  return "rgba(200,80,20,0.10)";
-  if (tempF >= 75)  return "rgba(200,120,20,0.06)";
-  if (tempF <= 25)  return "rgba(100,160,220,0.15)";
-  if (tempF <= 40)  return "rgba(120,170,220,0.10)";
-  if (tempF <= 55)  return "rgba(140,185,220,0.06)";
-  return null;
-}
-
-function applyBackground(tempF, stationTimeStr, rainRate) {
-  const hour = parseHour(stationTimeStr);
-  const c = getSkyColors(hour);
-  const bg = document.getElementById("skyBg");
-  const isNight = hour < 5 || hour >= 20;
-
-  let bgStr = `linear-gradient(180deg, ${c[0]} 0%, ${c[1]} 40%, ${c[2]} 75%, ${c[3]} 100%)`;
-
-  if (isNight) {
-    bgStr = `
-      radial-gradient(1px 1px at 15% 12%, rgba(255,255,255,0.7) 0%, transparent 100%),
-      radial-gradient(1px 1px at 60% 8%,  rgba(255,255,255,0.5) 0%, transparent 100%),
-      radial-gradient(1px 1px at 40% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
-      radial-gradient(1px 1px at 80% 18%, rgba(255,255,255,0.6) 0%, transparent 100%),
-      radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.3) 0%, transparent 100%),
-      radial-gradient(1px 1px at 90% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
-      radial-gradient(1px 1px at 50% 5%,  rgba(255,255,255,0.8) 0%, transparent 100%),
-      radial-gradient(1px 1px at 70% 28%, rgba(255,255,255,0.4) 0%, transparent 100%),
-      linear-gradient(180deg, ${c[0]} 0%, ${c[1]} 40%, ${c[2]} 75%, ${c[3]} 100%)
-    `;
+  function resizeCanvas() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
   }
 
-  bg.style.background = bgStr;
+  // Build a pool of raindrop objects scaled to intensity
+  function initDrops(n) {
+    drops = Array.from({ length: n }, () => ({
+      x:     Math.random() * canvas.width,
+      y:     Math.random() * canvas.height,
+      len:   Math.random() * 20 + 10,
+      speed: Math.random() * 4 + 3,
+      alpha: Math.random() * 0.25 + 0.08
+    }));
+  }
 
-  const glow = document.getElementById("skyGlow");
-  const tint = getTempTint(tempF, rainRate);
-  if (tint) { glow.style.background = tint; glow.style.opacity = "1"; }
-  else { glow.style.opacity = "0"; }
-}
-
-function getTempColor(t) {
-  if (t >= 100) return "#ff2200";
-  if (t >= 90)  return "#ff5500";
-  if (t >= 80)  return "#ff8c00";
-  if (t >= 70)  return "#ffd700";
-  if (t >= 60)  return "#e8edf5";
-  if (t >= 50)  return "#a8d8ea";
-  if (t >= 40)  return "#7bc8e2";
-  if (t >= 32)  return "#5bb8d4";
-  return "#00aaff";
-}
-
-function getCondition(t, rainRate, hum) {
-  if (rainRate > 0.5) return "Heavy Rain";
-  if (rainRate > 0)   return "Light Rain";
-  if (hum > 85)       return "Humid";
-  if (t >= 100)       return "Extreme Heat";
-  if (t >= 90)        return "Hot";
-  if (t >= 75)        return "Warm";
-  if (t >= 60)        return "Pleasant";
-  if (t >= 45)        return "Cool";
-  if (t >= 32)        return "Cold";
-  return "Freezing";
-}
-
-function set(id, val) { const e = document.getElementById(id); if (e) e.textContent = val || "—"; }
-
-function bar(id, val, max) {
-  const e = document.getElementById(id);
-  if (e) e.style.width = Math.min(((parseFloat(val)||0)/max)*100, 100) + "%";
-}
-
-async function fetchWeather() {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/weather_current?id=eq.1&select=*`, {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+  // Render loop — draws each drop as a short angled stroke
+  function drawRain() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drops.forEach(d => {
+      ctx.beginPath();
+      ctx.moveTo(d.x, d.y);
+      ctx.lineTo(d.x - 1, d.y + d.len);
+      ctx.strokeStyle = `rgba(174,214,241,${d.alpha})`;
+      ctx.lineWidth   = 1;
+      ctx.stroke();
+      d.y += d.speed;
+      if (d.y > canvas.height) { d.y = -d.len; d.x = Math.random() * canvas.width; }
     });
-    if (!res.ok) throw new Error("fetch failed");
-    const data = await res.json();
-    if (!data.length) throw new Error("no data");
-    const d = data[0];
+    animFrame = requestAnimationFrame(drawRain);
+  }
 
-    const tempF    = parseFloat(d.temperature) || 70;
-    const rainRate = parseFloat(d.rain_rate)   || 0;
-    const humidity = parseFloat(d.humidity)    || 50;
+  function startRain(rate) {
+    resizeCanvas();
+    initDrops(Math.max(30, Math.floor(rate * 150)));
+    canvas.style.opacity = Math.min(rate * 0.7, 0.55);
+    if (!rainActive) { rainActive = true; drawRain(); }
+  }
 
-    applyBackground(tempF, d.station_time, rainRate);
-    rainRate > 0 ? startRain(Math.min(rainRate / 2, 1)) : stopRain();
+  function stopRain() {
+    canvas.style.opacity = 0;
+    setTimeout(() => {
+      cancelAnimationFrame(animFrame);
+      rainActive = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }, 2000);
+  }
 
-    document.getElementById("statusDot").className = "status-dot";
-    set("statusLabel", "Live");
+  window.addEventListener("resize", resizeCanvas);
 
-    if (d.updated_at) {
-      const dt = new Date(d.updated_at);
-      set("lastUpdated", "Updated " + dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}));
-      set("footerTime",  dt.toLocaleDateString() + " " + dt.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}));
+  // ── Sky background helpers ───────────────────────
+
+  // Parse Davis station time string ("3:47p") into a 24-hr hour int
+  function parseHour(stationTimeStr) {
+    if (!stationTimeStr) return new Date().getHours();
+    const m = stationTimeStr.match(/(\d+):(\d+)([ap])/);
+    if (!m) return 12;
+    let h = parseInt(m[1]);
+    if (m[3] === "p" && h !== 12) h += 12;
+    if (m[3] === "a" && h === 12) h  = 0;
+    return h;
+  }
+
+  // Map time-of-day to a 4-stop gradient palette
+  function getSkyColors(hour) {
+    if (hour >= 5  && hour < 7)  return ["#0d0520","#3d1a6e","#c45c3c","#f5a623"]; // dawn
+    if (hour >= 7  && hour < 11) return ["#0d1b3e","#1a3a6e","#2e6fa8","#87ceeb"]; // morning
+    if (hour >= 11 && hour < 15) return ["#0a1628","#1a3a6e","#2980b9","#5dade2"]; // midday
+    if (hour >= 15 && hour < 18) return ["#0d1b3e","#1a3a6e","#2471a3","#7fb3d3"]; // afternoon
+    if (hour >= 18 && hour < 20) return ["#1a0a2e","#6e2a1a","#c0392b","#e67e22"]; // sunset
+    return ["#030510","#07091a","#0d0f2a","#111428"];                               // night
+  }
+
+  // Subtle temperature-based color tint layered over the sky
+  function getTempTint(tempF, rainRate) {
+    if (rainRate > 0) return "rgba(30,50,90,0.28)";
+    if (tempF >= 95)  return "rgba(180,50,0,0.15)";
+    if (tempF >= 85)  return "rgba(200,80,20,0.10)";
+    if (tempF >= 75)  return "rgba(200,120,20,0.06)";
+    if (tempF <= 25)  return "rgba(100,160,220,0.15)";
+    if (tempF <= 40)  return "rgba(120,170,220,0.10)";
+    if (tempF <= 55)  return "rgba(140,185,220,0.06)";
+    return null;
+  }
+
+  // Compose and apply sky + stars (night only) + temp tint
+  function applyBackground(tempF, stationTimeStr, rainRate) {
+    const hour    = parseHour(stationTimeStr);
+    const c       = getSkyColors(hour);
+    const bg      = document.getElementById("skyBg");
+    const isNight = hour < 5 || hour >= 20;
+
+    let bgStr = `linear-gradient(180deg, ${c[0]} 0%, ${c[1]} 40%, ${c[2]} 75%, ${c[3]} 100%)`;
+
+    // Night mode adds scattered star points via radial gradients
+    if (isNight) {
+      bgStr = `
+        radial-gradient(1px 1px at 15% 12%, rgba(255,255,255,0.7) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 8%,  rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 40% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 80% 18%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 50% 5%,  rgba(255,255,255,0.8) 0%, transparent 100%),
+        radial-gradient(1px 1px at 70% 28%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        linear-gradient(180deg, ${c[0]} 0%, ${c[1]} 40%, ${c[2]} 75%, ${c[3]} 100%)
+      `;
     }
 
-    const tempEl = document.getElementById("temperature");
-    tempEl.innerHTML = `${(d.temperature||"—").replace("F","")}<span>°F</span>`;
-    tempEl.style.color = getTempColor(tempF);
+    bg.style.background = bgStr;
 
-    set("tempSub", `Feels like ${d.heat_index||"—"} · Dewpoint ${d.dewpoint||"—"}`);
-    set("conditionBadge", getCondition(tempF, rainRate, humidity));
-    set("wind", d.wind || "—");
-    set("windGust", d.wind_gust || "—");
-    set("humidity",    d.humidity    || "—");
-    set("dewpoint",    d.dewpoint    || "—");
-    set("barometer",   d.barometer   || "—");
-    set("stationTime", d.station_time || "—");
-    set("rainToday",   d.rain_today   || "—");
-    set("rainRate",    d.rain_rate    || "—");
-    set("rainMonthly", d.rain_monthly || "—");
-    set("rainYearly",  d.rain_yearly  || "—");
-    bar("rainTodayBar",   d.rain_today,   2);
-    bar("rainMonthlyBar", d.rain_monthly, 5);
-    bar("rainYearlyBar",  d.rain_yearly,  20);
-    set("windChill",  d.wind_chill  || "—");
-    set("heatIndex",  d.heat_index  || "—");
-    set("thwIndex",   d.thw_index   || "—");
-
-    document.getElementById("loader").classList.add("hidden");
-
-  } catch(err) {
-    console.error(err);
-    document.getElementById("statusDot").className = "status-dot offline";
-    set("statusLabel", "Offline");
-    document.getElementById("loader").classList.add("hidden");
+    const glow = document.getElementById("skyGlow");
+    const tint = getTempTint(tempF, rainRate);
+    if (tint) { glow.style.background = tint; glow.style.opacity = "1"; }
+    else       { glow.style.opacity = "0"; }
   }
-}
 
-resizeCanvas();
-fetchWeather();
-setInterval(fetchWeather, 60000);
+  // Temperature → display color (cold=blue → hot=red)
+  function getTempColor(t) {
+    if (t >= 100) return "#ff2200";
+    if (t >= 90)  return "#ff5500";
+    if (t >= 80)  return "#ff8c00";
+    if (t >= 70)  return "#ffd700";
+    if (t >= 60)  return "#e8edf5";
+    if (t >= 50)  return "#a8d8ea";
+    if (t >= 40)  return "#7bc8e2";
+    if (t >= 32)  return "#5bb8d4";
+    return "#00aaff";
+  }
+
+  // Derive a human-readable condition string from sensor values
+  function getCondition(t, rainRate, hum) {
+    if (rainRate > 0.5) return "Heavy Rain";
+    if (rainRate > 0)   return "Light Rain";
+    if (hum > 85)       return "Humid";
+    if (t >= 100)       return "Extreme Heat";
+    if (t >= 90)        return "Hot";
+    if (t >= 75)        return "Warm";
+    if (t >= 60)        return "Pleasant";
+    if (t >= 45)        return "Cool";
+    if (t >= 32)        return "Cold";
+    return "Freezing";
+  }
+
+  // ── DOM helpers ──────────────────────────────────
+
+  function set(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val || "—";
+  }
+
+  // Fills a rain progress bar to (val / max) %
+  function bar(id, val, max) {
+    const el = document.getElementById(id);
+    if (el) el.style.width = Math.min(((parseFloat(val) || 0) / max) * 100, 100) + "%";
+  }
+
+  // ── Data fetch ───────────────────────────────────
+
+  async function fetchWeather() {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/weather_current?id=eq.1&select=*`,
+        { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+      );
+      if (!res.ok) throw new Error("fetch failed");
+      const data = await res.json();
+      if (!data.length) throw new Error("no data");
+
+      const d        = data[0];
+      const tempF    = parseFloat(d.temperature) || 70;
+      const rainRate = parseFloat(d.rain_rate)   || 0;
+      const humidity = parseFloat(d.humidity)    || 50;
+
+      // Update sky and rain animation
+      applyBackground(tempF, d.station_time, rainRate);
+      rainRate > 0 ? startRain(Math.min(rainRate / 2, 1)) : stopRain();
+
+      // Status indicator
+      document.getElementById("statusDot").className = "status-dot";
+      set("statusLabel", "Live");
+
+      // Timestamps
+      if (d.updated_at) {
+        const dt = new Date(d.updated_at);
+        set("lastUpdated", "Updated " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+        set("footerTime",  dt.toLocaleDateString() + " " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      }
+
+      // Temperature hero card
+      const tempEl       = document.getElementById("temperature");
+      tempEl.innerHTML   = `${(d.temperature || "—").replace("F", "")}<span>°F</span>`;
+      tempEl.style.color = getTempColor(tempF);
+      set("tempSub",        `Feels like ${d.heat_index || "—"} · Dewpoint ${d.dewpoint || "—"}`);
+      set("conditionBadge", getCondition(tempF, rainRate, humidity));
+
+      // Wind hero card
+      set("wind",     d.wind      || "—");
+      set("windGust", d.wind_gust || "—");
+
+      // Core metric cards
+      set("humidity",    d.humidity     || "—");
+      set("dewpoint",    d.dewpoint     || "—");
+      set("barometer",   d.barometer    || "—");
+      set("stationTime", d.station_time || "—");
+
+      // Precipitation cards + progress bars
+      set("rainToday",   d.rain_today   || "—");
+      set("rainRate",    d.rain_rate    || "—");
+      set("rainMonthly", d.rain_monthly || "—");
+      set("rainYearly",  d.rain_yearly  || "—");
+      bar("rainTodayBar",   d.rain_today,    2);
+      bar("rainMonthlyBar", d.rain_monthly,  5);
+      bar("rainYearlyBar",  d.rain_yearly,  20);
+
+      // Comfort index cards
+      set("windChill", d.wind_chill || "—");
+      set("heatIndex", d.heat_index || "—");
+      set("thwIndex",  d.thw_index  || "—");
+
+      document.getElementById("loader").classList.add("hidden");
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById("statusDot").className = "status-dot offline";
+      set("statusLabel", "Offline");
+      document.getElementById("loader").classList.add("hidden");
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────
+  resizeCanvas();
+  fetchWeather();
+  setInterval(fetchWeather, 60000); // re-poll every 60 seconds
+
 </script>
 </body>
 </html>
