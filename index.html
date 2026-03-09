@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GPG*T VDA — Weather Station</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 
   /* ── Design tokens ─────────────────────────────── */
@@ -25,7 +24,7 @@
     height: 100%;
     overflow: hidden;
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
   }
 
   /* ── Animated sky background layers ────────────── */
@@ -54,15 +53,16 @@
     transition: opacity 2s ease;
   }
 
-  /* ── Main layout wrapper — fills exactly one screen */
+  /* ── Main layout wrapper — CSS grid fills exactly one screen */
   .container {
     position: relative;
     z-index: 10;
     height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 14px 20px 10px;
-    gap: 8px;
+    display: grid;
+    grid-template-rows: auto 3fr auto auto 1.4fr auto 1.4fr auto;
+    /* header | hero | section-label | grid | rain-grid | section-label | comfort-grid | footer */
+    padding: 12px 20px 10px;
+    gap: 6px;
   }
 
   /* ── Glassmorphism card base ────────────────────── */
@@ -86,7 +86,7 @@
   }
 
   .station-id {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.2em;
@@ -95,7 +95,7 @@
   }
 
   h1 {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
     font-size: clamp(22px, 3vw, 32px);
     font-weight: 800;
     letter-spacing: -0.02em;
@@ -145,16 +145,15 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    flex: 3;           /* hero takes 3x share of spare height */
     min-height: 0;
   }
 
   .hero-temp,
   .hero-wind {
-    padding: 14px 20px;
+    padding: 18px 24px;
     position: relative;
     overflow: hidden;
-    height: 100%;      /* fill the hero row's flex height */
+    min-height: 0;
   }
 
   /* Subtle top-edge highlight on temp card */
@@ -182,7 +181,7 @@
 
   /* Large temperature number */
   .hero-value {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
     font-size: clamp(72px, 10vw, 120px);
     font-weight: 800;
     letter-spacing: -0.04em;
@@ -219,7 +218,7 @@
   .wind-block { flex: 1; }
 
   .wind-value {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
     font-size: clamp(42px, 6vw, 72px);
     font-weight: 800;
     letter-spacing: -0.03em;
@@ -227,7 +226,7 @@
   }
 
   .wind-gust-value {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
     font-size: clamp(34px, 4.5vw, 56px);
     font-weight: 700;
     color: var(--accent2);
@@ -250,7 +249,6 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    flex: 1.5;         /* each card row takes 1.5x share of spare height */
     min-height: 0;
   }
 
@@ -259,7 +257,6 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    flex: 1.5;
     min-height: 0;
   }
 
@@ -280,7 +277,7 @@
   }
 
   .card-value {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
     font-size: clamp(22px, 2.8vw, 36px);
     font-weight: 700;
     letter-spacing: -0.02em;
