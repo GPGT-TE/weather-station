@@ -245,8 +245,18 @@
     flex-shrink: 0;
   }
 
-  /* ── 4-column metric cards ──────────────────────── */
-  .grid,
+  /* ── metric cards ───────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 8px;
+    min-height: 0;
+  }
+
+  .grid .card:nth-child(1) { grid-column: span 4; }
+  .grid .card:nth-child(2) { grid-column: span 4; }
+  .grid .card:nth-child(3) { grid-column: span 4; }
+
   .rain-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -424,10 +434,6 @@
     <div class="card glass">
       <div class="card-label">Dewpoint</div>
       <div class="card-value" id="dewpoint">—</div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">Barometer</div>
-      <div class="card-value" id="barometer">—</div>
     </div>
     <div class="card glass">
       <div class="card-label">Station Time</div>
