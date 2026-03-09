@@ -145,7 +145,8 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    flex-shrink: 0;
+    flex: 3;           /* hero takes 3x share of spare height */
+    min-height: 0;
   }
 
   .hero-temp,
@@ -153,6 +154,7 @@
     padding: 14px 20px;
     position: relative;
     overflow: hidden;
+    height: 100%;      /* fill the hero row's flex height */
   }
 
   /* Subtle top-edge highlight on temp card */
@@ -181,7 +183,7 @@
   /* Large temperature number */
   .hero-value {
     font-family: 'Syne', sans-serif;
-    font-size: clamp(48px, 7vw, 80px);
+    font-size: clamp(72px, 10vw, 120px);
     font-weight: 800;
     letter-spacing: -0.04em;
     line-height: 1;
@@ -196,9 +198,9 @@
   }
 
   .hero-sub {
-    font-size: 12px;
+    font-size: 15px;
     color: var(--muted);
-    margin-top: 4px;
+    margin-top: 6px;
   }
 
   .condition-badge {
@@ -218,7 +220,7 @@
 
   .wind-value {
     font-family: 'Syne', sans-serif;
-    font-size: clamp(32px, 4.5vw, 56px);
+    font-size: clamp(42px, 6vw, 72px);
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1;
@@ -226,7 +228,7 @@
 
   .wind-gust-value {
     font-family: 'Syne', sans-serif;
-    font-size: clamp(26px, 3.5vw, 44px);
+    font-size: clamp(34px, 4.5vw, 56px);
     font-weight: 700;
     color: var(--accent2);
     line-height: 1;
@@ -248,7 +250,8 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    flex-shrink: 0;
+    flex: 1.5;         /* each card row takes 1.5x share of spare height */
+    min-height: 0;
   }
 
   /* ── 3-column comfort cards ─────────────────────── */
@@ -256,23 +259,29 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    flex-shrink: 0;
+    flex: 1.5;
+    min-height: 0;
   }
 
   /* Card internals */
-  .card { padding: 10px 16px; }
+  .card {
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* vertically center label + value */
+  }
 
   .card-label {
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
 
   .card-value {
     font-family: 'Syne', sans-serif;
-    font-size: clamp(18px, 2.2vw, 28px);
+    font-size: clamp(22px, 2.8vw, 36px);
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.1;
@@ -683,13 +692,19 @@
       set("conditionBadge", getCondition(tempF, rainRate, humidity));
 
       // Wind hero card
-      set("wind",     d.wind      || "—");
-      set("windGust", d.wind_gust || "—");
+      // wind_gust comes from Excel — "#NAME?" means broken formula on the source side
+      const gustRaw = d.wind_gust || "";
+      const gustVal = (gustRaw === "" || gustRaw.toString().includes("#")) ? "—" : gustRaw;
+      set("wind",     d.wind  || "—");
+      set("windGust", gustVal);
 
       // Core metric cards
+      // Barometer comes from Davis as "29.92 in & Falling" — show just the number + in
+      const baroRaw = d.barometer || "";
+      const baroClean = baroRaw.replace(/\s*&.*$/, "").trim(); // strip " & Falling" etc.
       set("humidity",    d.humidity     || "—");
       set("dewpoint",    d.dewpoint     || "—");
-      set("barometer",   d.barometer    || "—");
+      set("barometer",   baroClean      || "—");
       set("stationTime", d.station_time || "—");
 
       // Precipitation cards + progress bars
