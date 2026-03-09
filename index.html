@@ -112,7 +112,7 @@
   /* ── Live status indicator ──────────────────────── */
   .status-dot {
     display: inline-block;
-    width: 14px; height: 14px;
+    width: 11px; height: 11px;
     border-radius: 50%;
     background: #00ff88;
     margin-right: 8px;
@@ -409,7 +409,7 @@
         <div class="wind-value" id="wind">—</div>
       </div>
       <div class="wind-block">
-        <div class="hero-label">10-Min Gust</div>
+        <div class="hero-label">10-Min Avg Wind</div>
         <div class="wind-gust-value" id="windGust">—</div>
       </div>
     </div>
@@ -692,11 +692,10 @@
       set("conditionBadge", getCondition(tempF, rainRate, humidity));
 
       // Wind hero card
-      // wind_gust comes from Excel — "#NAME?" means broken formula on the source side
-      const gustRaw = d.wind_gust || "";
-      const gustVal = (gustRaw === "" || gustRaw.toString().includes("#")) ? "—" : gustRaw;
+      const avgRaw = d.wind_avg || "";
+      const avgVal = avgRaw === "" ? "—" : avgRaw;
       set("wind",     d.wind  || "—");
-      set("windGust", gustVal);
+      set("windGust", avgVal);
 
       // Core metric cards
       // Barometer comes from Davis as "29.92 in & Falling" — show just the number + in
