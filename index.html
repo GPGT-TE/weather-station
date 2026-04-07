@@ -2,621 +2,685 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GPG*T VDA — Weather Station</title>
-<style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPG*T VDA — Weather Station</title>
+    <style>
+        /* ── Design tokens ─────────────────────────────── */
+        :root {
+            --surface: rgba(10, 13, 20, 0.65);
+            --border: rgba(255, 255, 255, 0.18);
+            --accent: #00d4ff;
+            --accent2: #ff6b35;
+            --text: #ffffff;
+            --muted: rgba(255, 255, 255, 0.65);
+            --warm: #ffb347;
+        }
 
-  /* ── Design tokens ─────────────────────────────── */
-  :root {
-    --surface:  rgba(10, 13, 20, 0.65);
-    --border:   rgba(255,255,255,0.18);
-    --accent:   #00d4ff;
-    --accent2:  #ff6b35;
-    --text:     #ffffff;
-    --muted:    rgba(255,255,255,0.65);
-    --warm:     #ffb347;
-  }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ── Full-viewport lock — no scrolling ─────────── */
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            color: var(--text);
+            font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+        }
 
-  /* ── Full-viewport lock — no scrolling ─────────── */
-  html, body {
-    height: 100%;
-    overflow: hidden;
-    color: var(--text);
-    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
-  }
+        /* ── Animated sky background layers ────────────── */
+        #skyBg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            transition: background 4s ease;
+        }
 
-  /* ── Animated sky background layers ────────────── */
-  #skyBg {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    transition: background 4s ease;
-  }
+        #skyGlow {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            transition: background 4s ease, opacity 3s ease;
+        }
 
-  #skyGlow {
-    position: fixed;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    transition: background 4s ease, opacity 3s ease;
-  }
+        /* ── Rain canvas (sits above sky, below content) ── */
+        #rainCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
 
-  /* ── Rain canvas (sits above sky, below content) ── */
-  #rainCanvas {
-    position: fixed;
-    inset: 0;
-    z-index: 2;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 2s ease;
-  }
+        /* ── Main layout wrapper ────────────────────────── */
+        /* Removed comfort-grid row — redistributed fr units to hero and rain-grid */
+        .container {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            display: grid;
+            grid-template-rows: auto 2fr auto 1fr auto 1fr auto;
+            /* header | hero | section-label | metrics-grid | section-label | rain-grid | footer */
+            padding: 12px 20px 10px;
+            gap: 6px;
+        }
 
-  /* ── Main layout wrapper ────────────────────────── */
-  /* Removed comfort-grid row — redistributed fr units to hero and rain-grid */
-  .container {
-    position: relative;
-    z-index: 10;
-    height: 100vh;
-    display: grid;
-    grid-template-rows: auto 1.8fr auto auto auto auto;
-    /* header | hero | section-label | metrics-grid | section-label | rain-grid | footer */
-    padding: 12px 20px 10px;
-    gap: 6px;
-  }
+        /* ── Glassmorphism card base ────────────────────── */
+        .glass {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            animation: fadeUp 0.5s ease both;
+        }
 
-  /* ── Glassmorphism card base ────────────────────── */
-  .glass {
-    background: var(--surface);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    animation: fadeUp 0.5s ease both;
-  }
+        .glass:hover {
+            border-color: rgba(255, 255, 255, 0.28);
+        }
 
-  .glass:hover { border-color: rgba(255,255,255,0.28); }
+        /* ── Header row ─────────────────────────────────── */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
 
-  /* ── Header row ─────────────────────────────────── */
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-  }
+        .station-id {
+            font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
 
-  .station-id {
-    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--accent);
-  }
+        h1 {
+            font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+            font-size: clamp(22px, 3vw, 32px);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
 
-  h1 {
-    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
-    font-size: clamp(22px, 3vw, 32px);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-  }
+        .header-meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
 
-  .header-meta {
-    font-size: 12px;
-    color: var(--muted);
-  }
+        .header-right {
+            text-align: right;
+        }
 
-  .header-right { text-align: right; }
+        /* ── Live status indicator ──────────────────────── */
+        .status-dot {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: #00ff88;
+            margin-right: 8px;
+            animation: blink 2s ease-in-out infinite;
+        }
 
-  /* ── Live status indicator ──────────────────────── */
-  .status-dot {
-    display: inline-block;
-    width: 11px; height: 11px;
-    border-radius: 50%;
-    background: #00ff88;
-    margin-right: 8px;
-    animation: blink 2s ease-in-out infinite;
-  }
+        .status-dot.offline {
+            background: var(--muted);
+            animation: none;
+        }
 
-  .status-dot.offline { background: var(--muted); animation: none; }
+        @keyframes blink {
 
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.3; }
-  }
+            0%,
+            100% {
+                opacity: 1;
+            }
 
-  .status-label {
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text);
-  }
+            50% {
+                opacity: 0.3;
+            }
+        }
 
-  .last-updated {
-    display: block;
-    font-size: 14px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
+        .status-label {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
 
-  /* ── Hero row: temp + wind side by side ─────────── */
-  .hero {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    min-height: 0;
-  }
+        .last-updated {
+            display: block;
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
 
-  .hero-temp,
-  .hero-wind {
-    padding: 18px 24px;
-    position: relative;
-    overflow: hidden;
-    min-height: 0;
-  }
+        /* ── Hero row: temp + wind side by side ─────────── */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            min-height: 0;
+        }
 
-  .hero-temp::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-  }
+        .hero-temp,
+        .hero-wind {
+            padding: 18px 24px;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
+        }
 
-  .hero-wind {
-    display: flex;
-    gap: 24px;
-    align-items: center;
-  }
+        .hero-temp::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        }
 
-  .hero-label {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
+        .hero-wind {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
 
-  .hero-value {
-    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
-    font-size: clamp(72px, 10vw, 120px);
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    line-height: 1;
-    transition: color 3s ease;
-  }
+        .hero-label {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
 
-  .hero-value span {
-    font-size: 0.38em;
-    color: var(--muted);
-    font-weight: 400;
-    vertical-align: super;
-  }
+        .hero-value {
+            font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+            font-size: clamp(72px, 10vw, 120px);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            transition: color 3s ease;
+        }
 
-  .hero-sub {
-    font-size: 15px;
-    color: var(--muted);
-    margin-top: 6px;
-  }
+        .hero-value span {
+            font-size: 0.38em;
+            color: var(--muted);
+            font-weight: 400;
+            vertical-align: super;
+        }
 
-  .condition-badge {
-    display: inline-block;
-    padding: 3px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.2);
-    margin-top: 6px;
-  }
+        .hero-sub {
+            font-size: 15px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
 
-  .wind-block { flex: 1; }
+        .condition-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 6px;
+        }
 
-  .wind-value {
-    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
-    font-size: clamp(42px, 6vw, 72px);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1;
-  }
+        .wind-block {
+            flex: 1;
+        }
 
-  .wind-gust-value {
-    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
-    font-size: clamp(34px, 4.5vw, 56px);
-    font-weight: 700;
-    color: var(--accent2);
-    line-height: 1;
-  }
+        .wind-value {
+            font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+            font-size: clamp(42px, 6vw, 72px);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
 
-  /* ── Section label above card rows ─────────────── */
-  .section-label {
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding-left: 2px;
-    flex-shrink: 0;
-  }
+        .wind-gust-value {
+            font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+            font-size: clamp(34px, 4.5vw, 56px);
+            font-weight: 700;
+            color: var(--accent2);
+            line-height: 1;
+        }
 
-  /* ── Metrics row — now 4 equal columns ──────────── */
-  /* Previously 3 cards spanning 12-col grid.          */
-  /* Now 4 cards: Humidity, Dewpoint, Barometer, Time  */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    min-height: 0;
-  }
+        /* ── Section label above card rows ─────────────── */
+        .section-label {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding-left: 2px;
+            flex-shrink: 0;
+        }
 
-  /* ── Rain grid — unchanged 4-col ───────────────── */
-  .rain-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    min-height: 0;
-  }
+        /* ── Metrics row — now 4 equal columns ──────────── */
+        /* Previously 3 cards spanning 12-col grid.          */
+        /* Now 4 cards: Humidity, Dewpoint, Barometer, Time  */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            min-height: 0;
+        }
 
-  /* Card internals */
-  .card {
-    padding: 0 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 6px;
-  }
+        /* ── Rain grid — unchanged 4-col ───────────────── */
+        .rain-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            min-height: 0;
+        }
 
-  .card-label {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
+        /* Card internals */
+        .card {
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+        }
 
-  .card-value {
-    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
-    font-size: clamp(24px, 2.8vw, 38px);
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    line-height: 1;
-  }
+        .card-label {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
 
-  .rain-bar {
-    height: 2px;
-    background: rgba(255,255,255,0.12);
-    border-radius: 2px;
-    margin-top: 6px;
-    overflow: hidden;
-  }
+        .card-value {
+            font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+            font-size: clamp(24px, 2.8vw, 38px);
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            line-height: 1;
+        }
 
-  .rain-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
-    transition: width 1s ease;
-  }
+        .rain-bar {
+            height: 2px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
 
-  /* ── Footer ─────────────────────────────────────── */
-  footer {
-    flex-shrink: 0;
-    padding-top: 6px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+        .rain-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: width 1s ease;
+        }
 
-  footer span {
-    font-size: 11px;
-    color: var(--muted);
-  }
+        /* ── Footer ─────────────────────────────────────── */
+        footer {
+            flex-shrink: 0;
+            padding-top: 6px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-  /* ── Download button ────────────────────────────── */
-  #downloadBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 16px;
-    margin-top: 0;
-    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #111111;
-    background: #ffffff;
-    border: none;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background 0.2s ease, transform 0.1s ease;
-  }
+        footer span {
+            font-size: 11px;
+            color: var(--muted);
+        }
 
-  #downloadBtn:hover {
-    background: #e0e0e0;
-    transform: translateY(-1px);
-  }
+        /* ── Download button ────────────────────────────── */
+        #downloadBtn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            margin-top: 0;
+            font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #111111;
+            background: #ffffff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
 
-  #downloadBtn:active {
-    transform: translateY(0);
-  }
+        #downloadBtn:hover {
+            background: #e0e0e0;
+            transform: translateY(-1px);
+        }
 
-  #downloadBtn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    transform: none;
-  }
+        #downloadBtn:active {
+            transform: translateY(0);
+        }
 
-  #downloadBtn svg {
-    width: 13px; height: 13px;
-    fill: none;
-    stroke: #111111;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    flex-shrink: 0;
-  }
+        #downloadBtn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
 
-  /* ── Loading spinner overlay ────────────────────── */
-  .loading-overlay {
-    position: fixed;
-    inset: 0;
-    background: #0a0d12;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    transition: opacity 0.6s;
-  }
+        #downloadBtn svg {
+            width: 13px;
+            height: 13px;
+            fill: none;
+            stroke: #111111;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            flex-shrink: 0;
+        }
 
-  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        /* ── Loading spinner overlay ────────────────────── */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: #0a0d12;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.6s;
+        }
 
-  .loader {
-    width: 36px; height: 36px;
-    border: 3px solid rgba(255,255,255,0.1);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+        .loader {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
-  /* ── Utility color classes ──────────────────────── */
-  .blue   { color: var(--accent);  }
-  .orange { color: var(--accent2); }
-  .warm   { color: var(--warm);    }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
 
-  /* ── Mobile: reflow to 2-col where needed ───────── */
-  @media (max-width: 768px) {
-    .hero         { grid-template-columns: 1fr; }
-    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-    .rain-grid    { grid-template-columns: repeat(2, 1fr); }
-  }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-</style>
+        /* ── Utility color classes ──────────────────────── */
+        .blue {
+            color: var(--accent);
+        }
+
+        .orange {
+            color: var(--accent2);
+        }
+
+        .warm {
+            color: var(--warm);
+        }
+
+        /* ── Mobile: reflow to 2-col where needed ───────── */
+        @media (max-width: 768px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .rain-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-<!-- Background layers -->
-<div id="skyBg"></div>
-<div id="skyGlow"></div>
-<canvas id="rainCanvas"></canvas>
+    <!-- Background layers -->
+    <div id="skyBg"></div>
+    <div id="skyGlow"></div>
+    <canvas id="rainCanvas"></canvas>
 
-<!-- Spinner -->
-<div class="loading-overlay" id="loader"><div class="loader"></div></div>
-
-<!-- ── Main layout ────────────────────────────────── -->
-<div class="container">
-
-  <!-- Header -->
-  <header>
-    <div>
-      <div class="station-id">Davis Vantage Pro 2</div>
-      <h1>Weather Station</h1>
-      <div class="header-meta">GPG*T VDA — San Angelo, TX</div>
+    <!-- Spinner -->
+    <div class="loading-overlay" id="loader">
+        <div class="loader"></div>
     </div>
-    <div class="header-right">
-      <div>
-        <span class="status-dot" id="statusDot"></span>
-        <span class="status-label" id="statusLabel">Loading...</span>
-      </div>
-      <span class="last-updated" id="lastUpdated">—</span>
+
+    <!-- ── Main layout ────────────────────────────────── -->
+    <div class="container">
+
+        <!-- Header -->
+        <header>
+            <div>
+                <div class="station-id">Davis Vantage Pro 2</div>
+                <h1>Weather Station</h1>
+                <div class="header-meta">GPG*T VDA — San Angelo, TX</div>
+            </div>
+            <div class="header-right">
+                <div>
+                    <span class="status-dot" id="statusDot"></span>
+                    <span class="status-label" id="statusLabel">Loading...</span>
+                </div>
+                <span class="last-updated" id="lastUpdated">—</span>
+            </div>
+        </header>
+
+        <!-- Hero: temperature + wind -->
+        <div class="hero">
+            <div class="hero-temp glass">
+                <div class="hero-label">Outside Temperature</div>
+                <div class="hero-value" id="temperature">—<span>°F</span></div>
+                <div class="hero-sub" id="tempSub">Feels like — · Dewpoint —</div>
+                <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:8px;">
+                    <div class="condition-badge" id="conditionBadge">—</div>
+                    <button id="downloadBtn" onclick="downloadHistory()">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 3v13M7 11l5 5 5-5" />
+                            <path d="M5 20h14" />
+                        </svg>
+                        Download 30-Day History
+                    </button>
+                </div>
+            </div>
+            <div class="hero-wind glass">
+                <div class="wind-block">
+                    <div class="hero-label">Wind</div>
+                    <div class="wind-value" id="wind">—</div>
+                </div>
+                <div class="wind-block">
+                    <div class="hero-label">10-Min Avg Wind</div>
+                    <div class="wind-gust-value" id="windGust">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Core metrics — 4 cards now that comfort indices are removed -->
+        <div class="section-label">Conditions</div>
+        <div class="metrics-grid">
+            <div class="card glass">
+                <div class="card-label">Humidity</div>
+                <div class="card-value blue" id="humidity">—</div>
+            </div>
+            <div class="card glass">
+                <div class="card-label">Dewpoint</div>
+                <div class="card-value" id="dewpoint">—</div>
+            </div>
+            <div class="card glass">
+                <div class="card-label">Barometer</div>
+                <div class="card-value" id="barometer">—</div>
+            </div>
+            <div class="card glass">
+                <div class="card-label">Station Time</div>
+                <div class="card-value" style="font-size:clamp(14px,1.8vw,22px);" id="stationTime">—</div>
+            </div>
+        </div>
+
+        <!-- Precipitation -->
+        <div class="section-label">Precipitation</div>
+        <div class="rain-grid">
+            <div class="card glass">
+                <div class="card-label">Today</div>
+                <div class="card-value blue" id="rainToday">—</div>
+                <div class="rain-bar">
+                    <div class="rain-fill" id="rainTodayBar"></div>
+                </div>
+            </div>
+            <div class="card glass">
+                <div class="card-label">Rain Rate</div>
+                <div class="card-value" id="rainRate">—</div>
+            </div>
+            <div class="card glass">
+                <div class="card-label">Monthly</div>
+                <div class="card-value" id="rainMonthly">—</div>
+                <div class="rain-bar">
+                    <div class="rain-fill" id="rainMonthlyBar"></div>
+                </div>
+            </div>
+            <div class="card glass">
+                <div class="card-label">Yearly</div>
+                <div class="card-value" id="rainYearly">—</div>
+                <div class="rain-bar">
+                    <div class="rain-fill" id="rainYearlyBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <span>Davis Vantage Pro 2 · Updates every 5 minutes</span>
+            <span id="footerTime">—</span>
+        </footer>
+
     </div>
-  </header>
 
-  <!-- Hero: temperature + wind -->
-  <div class="hero">
-    <div class="hero-temp glass">
-      <div class="hero-label">Outside Temperature</div>
-      <div class="hero-value" id="temperature">—<span>°F</span></div>
-      <div class="hero-sub" id="tempSub">Feels like — · Dewpoint —</div>
-      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:8px;">
-        <div class="condition-badge" id="conditionBadge">—</div>
-        <button id="downloadBtn" onclick="downloadHistory()">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 3v13M7 11l5 5 5-5"/>
-            <path d="M5 20h14"/>
-          </svg>
-          Download 30-Day History
-        </button>
-      </div>
-    </div>
-    <div class="hero-wind glass">
-      <div class="wind-block">
-        <div class="hero-label">Wind</div>
-        <div class="wind-value" id="wind">—</div>
-      </div>
-      <div class="wind-block">
-        <div class="hero-label">10-Min Avg Wind</div>
-        <div class="wind-gust-value" id="windGust">—</div>
-      </div>
-    </div>
-  </div>
+    <script>
 
-  <!-- Core metrics — 4 cards now that comfort indices are removed -->
-  <div class="section-label">Conditions</div>
-  <div class="metrics-grid">
-    <div class="card glass">
-      <div class="card-label">Humidity</div>
-      <div class="card-value blue" id="humidity">—</div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">Dewpoint</div>
-      <div class="card-value" id="dewpoint">—</div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">Barometer</div>
-      <div class="card-value" id="barometer">—</div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">Station Time</div>
-      <div class="card-value" style="font-size:clamp(14px,1.8vw,22px);" id="stationTime">—</div>
-    </div>
-  </div>
+        // ── Supabase connection ──────────────────────────
+        const SUPABASE_URL = "https://zrieseuynwnpsfvplwfi.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_-OFTC5LLjm7JGOqDUohLGg_pSDwuTeO";
 
-  <!-- Precipitation -->
-  <div class="section-label">Precipitation</div>
-  <div class="rain-grid">
-    <div class="card glass">
-      <div class="card-label">Today</div>
-      <div class="card-value blue" id="rainToday">—</div>
-      <div class="rain-bar"><div class="rain-fill" id="rainTodayBar"></div></div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">Rain Rate</div>
-      <div class="card-value" id="rainRate">—</div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">Monthly</div>
-      <div class="card-value" id="rainMonthly">—</div>
-      <div class="rain-bar"><div class="rain-fill" id="rainMonthlyBar"></div></div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">Yearly</div>
-      <div class="card-value" id="rainYearly">—</div>
-      <div class="rain-bar"><div class="rain-fill" id="rainYearlyBar"></div></div>
-    </div>
-  </div>
+        // ── Rain canvas setup ────────────────────────────
+        const canvas = document.getElementById("rainCanvas");
+        const ctx = canvas.getContext("2d");
+        let drops = [], rainActive = false, animFrame;
 
-  <!-- Footer -->
-  <footer>
-    <span>Davis Vantage Pro 2 · Updates every 5 minutes</span>
-    <span id="footerTime">—</span>
-  </footer>
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
 
-</div>
+        function initDrops(n) {
+            drops = Array.from({ length: n }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                len: Math.random() * 20 + 10,
+                speed: Math.random() * 4 + 3,
+                alpha: Math.random() * 0.25 + 0.08
+            }));
+        }
 
-<script>
+        function drawRain() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drops.forEach(d => {
+                ctx.beginPath();
+                ctx.moveTo(d.x, d.y);
+                ctx.lineTo(d.x - 1, d.y + d.len);
+                ctx.strokeStyle = `rgba(174,214,241,${d.alpha})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                d.y += d.speed;
+                if (d.y > canvas.height) { d.y = -d.len; d.x = Math.random() * canvas.width; }
+            });
+            animFrame = requestAnimationFrame(drawRain);
+        }
 
-  // ── Supabase connection ──────────────────────────
-  const SUPABASE_URL = "https://zrieseuynwnpsfvplwfi.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_-OFTC5LLjm7JGOqDUohLGg_pSDwuTeO";
+        function startRain(rate) {
+            resizeCanvas();
+            initDrops(Math.max(30, Math.floor(rate * 150)));
+            canvas.style.opacity = Math.min(rate * 0.7, 0.55);
+            if (!rainActive) { rainActive = true; drawRain(); }
+        }
 
-  // ── Rain canvas setup ────────────────────────────
-  const canvas = document.getElementById("rainCanvas");
-  const ctx    = canvas.getContext("2d");
-  let drops = [], rainActive = false, animFrame;
+        function stopRain() {
+            canvas.style.opacity = 0;
+            setTimeout(() => {
+                cancelAnimationFrame(animFrame);
+                rainActive = false;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 2000);
+        }
 
-  function resizeCanvas() {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
+        window.addEventListener("resize", resizeCanvas);
 
-  function initDrops(n) {
-    drops = Array.from({ length: n }, () => ({
-      x:     Math.random() * canvas.width,
-      y:     Math.random() * canvas.height,
-      len:   Math.random() * 20 + 10,
-      speed: Math.random() * 4 + 3,
-      alpha: Math.random() * 0.25 + 0.08
-    }));
-  }
+        // ── Sky background helpers ───────────────────────
+        function parseHour(stationTimeStr) {
+            if (!stationTimeStr) return new Date().getHours();
+            const m = stationTimeStr.match(/(\d+):(\d+)([ap])/);
+            if (!m) return 12;
+            let h = parseInt(m[1]);
+            if (m[3] === "p" && h !== 12) h += 12;
+            if (m[3] === "a" && h === 12) h = 0;
+            return h;
+        }
 
-  function drawRain() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drops.forEach(d => {
-      ctx.beginPath();
-      ctx.moveTo(d.x, d.y);
-      ctx.lineTo(d.x - 1, d.y + d.len);
-      ctx.strokeStyle = `rgba(174,214,241,${d.alpha})`;
-      ctx.lineWidth   = 1;
-      ctx.stroke();
-      d.y += d.speed;
-      if (d.y > canvas.height) { d.y = -d.len; d.x = Math.random() * canvas.width; }
-    });
-    animFrame = requestAnimationFrame(drawRain);
-  }
+        function getSkyColors(hour) {
+            if (hour >= 5 && hour < 7) return ["#0d0520", "#3d1a6e", "#c45c3c", "#f5a623"];
+            if (hour >= 7 && hour < 11) return ["#0d1b3e", "#1a3a6e", "#2e6fa8", "#87ceeb"];
+            if (hour >= 11 && hour < 15) return ["#0a1628", "#1a3a6e", "#2980b9", "#5dade2"];
+            if (hour >= 15 && hour < 18) return ["#0d1b3e", "#1a3a6e", "#2471a3", "#7fb3d3"];
+            if (hour >= 18 && hour < 20) return ["#1a0a2e", "#6e2a1a", "#c0392b", "#e67e22"];
+            return ["#030510", "#07091a", "#0d0f2a", "#111428"];
+        }
 
-  function startRain(rate) {
-    resizeCanvas();
-    initDrops(Math.max(30, Math.floor(rate * 150)));
-    canvas.style.opacity = Math.min(rate * 0.7, 0.55);
-    if (!rainActive) { rainActive = true; drawRain(); }
-  }
+        function getTempTint(tempF, rainRate) {
+            if (rainRate > 0) return "rgba(30,50,90,0.28)";
+            if (tempF >= 95) return "rgba(180,50,0,0.15)";
+            if (tempF >= 85) return "rgba(200,80,20,0.10)";
+            if (tempF >= 75) return "rgba(200,120,20,0.06)";
+            if (tempF <= 25) return "rgba(100,160,220,0.15)";
+            if (tempF <= 40) return "rgba(120,170,220,0.10)";
+            if (tempF <= 55) return "rgba(140,185,220,0.06)";
+            return null;
+        }
 
-  function stopRain() {
-    canvas.style.opacity = 0;
-    setTimeout(() => {
-      cancelAnimationFrame(animFrame);
-      rainActive = false;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }, 2000);
-  }
+        function applyBackground(tempF, stationTimeStr, rainRate) {
+            const hour = parseHour(stationTimeStr);
+            const c = getSkyColors(hour);
+            const bg = document.getElementById("skyBg");
+            const isNight = hour < 5 || hour >= 20;
 
-  window.addEventListener("resize", resizeCanvas);
+            let bgStr = `linear-gradient(180deg, ${c[0]} 0%, ${c[1]} 40%, ${c[2]} 75%, ${c[3]} 100%)`;
 
-  // ── Sky background helpers ───────────────────────
-  function parseHour(stationTimeStr) {
-    if (!stationTimeStr) return new Date().getHours();
-    const m = stationTimeStr.match(/(\d+):(\d+)([ap])/);
-    if (!m) return 12;
-    let h = parseInt(m[1]);
-    if (m[3] === "p" && h !== 12) h += 12;
-    if (m[3] === "a" && h === 12) h  = 0;
-    return h;
-  }
-
-  function getSkyColors(hour) {
-    if (hour >= 5  && hour < 7)  return ["#0d0520","#3d1a6e","#c45c3c","#f5a623"];
-    if (hour >= 7  && hour < 11) return ["#0d1b3e","#1a3a6e","#2e6fa8","#87ceeb"];
-    if (hour >= 11 && hour < 15) return ["#0a1628","#1a3a6e","#2980b9","#5dade2"];
-    if (hour >= 15 && hour < 18) return ["#0d1b3e","#1a3a6e","#2471a3","#7fb3d3"];
-    if (hour >= 18 && hour < 20) return ["#1a0a2e","#6e2a1a","#c0392b","#e67e22"];
-    return ["#030510","#07091a","#0d0f2a","#111428"];
-  }
-
-  function getTempTint(tempF, rainRate) {
-    if (rainRate > 0) return "rgba(30,50,90,0.28)";
-    if (tempF >= 95)  return "rgba(180,50,0,0.15)";
-    if (tempF >= 85)  return "rgba(200,80,20,0.10)";
-    if (tempF >= 75)  return "rgba(200,120,20,0.06)";
-    if (tempF <= 25)  return "rgba(100,160,220,0.15)";
-    if (tempF <= 40)  return "rgba(120,170,220,0.10)";
-    if (tempF <= 55)  return "rgba(140,185,220,0.06)";
-    return null;
-  }
-
-  function applyBackground(tempF, stationTimeStr, rainRate) {
-    const hour    = parseHour(stationTimeStr);
-    const c       = getSkyColors(hour);
-    const bg      = document.getElementById("skyBg");
-    const isNight = hour < 5 || hour >= 20;
-
-    let bgStr = `linear-gradient(180deg, ${c[0]} 0%, ${c[1]} 40%, ${c[2]} 75%, ${c[3]} 100%)`;
-
-    if (isNight) {
-      bgStr = `
+            if (isNight) {
+                bgStr = `
         radial-gradient(1px 1px at 15% 12%, rgba(255,255,255,0.7) 0%, transparent 100%),
         radial-gradient(1px 1px at 60% 8%,  rgba(255,255,255,0.5) 0%, transparent 100%),
         radial-gradient(1px 1px at 40% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
@@ -627,200 +691,201 @@
         radial-gradient(1px 1px at 70% 28%, rgba(255,255,255,0.4) 0%, transparent 100%),
         linear-gradient(180deg, ${c[0]} 0%, ${c[1]} 40%, ${c[2]} 75%, ${c[3]} 100%)
       `;
-    }
+            }
 
-    bg.style.background = bgStr;
+            bg.style.background = bgStr;
 
-    const glow = document.getElementById("skyGlow");
-    const tint = getTempTint(tempF, rainRate);
-    if (tint) { glow.style.background = tint; glow.style.opacity = "1"; }
-    else       { glow.style.opacity = "0"; }
-  }
-
-  function getTempColor(t) {
-    if (t >= 100) return "#ff2200";
-    if (t >= 90)  return "#ff5500";
-    if (t >= 80)  return "#ff8c00";
-    if (t >= 70)  return "#ffd700";
-    if (t >= 60)  return "#e8edf5";
-    if (t >= 50)  return "#a8d8ea";
-    if (t >= 40)  return "#7bc8e2";
-    if (t >= 32)  return "#5bb8d4";
-    return "#00aaff";
-  }
-
-  function getCondition(t, rainRate, hum) {
-    if (rainRate > 0.5) return "Heavy Rain";
-    if (rainRate > 0)   return "Light Rain";
-    if (hum > 85)       return "Humid";
-    if (t >= 100)       return "Extreme Heat";
-    if (t >= 90)        return "Hot";
-    if (t >= 75)        return "Warm";
-    if (t >= 60)        return "Pleasant";
-    if (t >= 45)        return "Cool";
-    if (t >= 32)        return "Cold";
-    return "Freezing";
-  }
-
-  // ── DOM helpers ──────────────────────────────────
-  function set(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val || "—";
-  }
-
-  function bar(id, val, max) {
-    const el = document.getElementById(id);
-    if (el) el.style.width = Math.min(((parseFloat(val) || 0) / max) * 100, 100) + "%";
-  }
-
-  // ── 30-Day CSV Download ──────────────────────────
-  async function downloadHistory() {
-    const btn = document.getElementById("downloadBtn");
-    btn.disabled = true;
-    btn.textContent = "Fetching...";
-
-    try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/weather_history?order=logged_at.asc&limit=10000`,
-        {
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Range-Unit": "items",
-            "Range": "0-9999"
-          }
+            const glow = document.getElementById("skyGlow");
+            const tint = getTempTint(tempF, rainRate);
+            if (tint) { glow.style.background = tint; glow.style.opacity = "1"; }
+            else { glow.style.opacity = "0"; }
         }
-      );
 
-      if (!res.ok) throw new Error("Fetch failed: " + res.status);
-      const rows = await res.json();
+        function getTempColor(t) {
+            if (t >= 100) return "#ff2200";
+            if (t >= 90) return "#ff5500";
+            if (t >= 80) return "#ff8c00";
+            if (t >= 70) return "#ffd700";
+            if (t >= 60) return "#e8edf5";
+            if (t >= 50) return "#a8d8ea";
+            if (t >= 40) return "#7bc8e2";
+            if (t >= 32) return "#5bb8d4";
+            return "#00aaff";
+        }
 
-      if (!rows.length) {
-        alert("No history data available yet. Data accumulates over time.");
-        return;
-      }
+        function getCondition(t, rainRate, hum) {
+            if (rainRate > 0.5) return "Heavy Rain";
+            if (rainRate > 0) return "Light Rain";
+            if (hum > 85) return "Humid";
+            if (t >= 100) return "Extreme Heat";
+            if (t >= 90) return "Hot";
+            if (t >= 75) return "Warm";
+            if (t >= 60) return "Pleasant";
+            if (t >= 45) return "Cool";
+            if (t >= 32) return "Cold";
+            return "Freezing";
+        }
 
-      const headers = [
-        "logged_at",
-        "temperature_F",
-        "humidity_pct",
-        "dewpoint_F",
-        "wind_speed_mph",
-        "wind_dir",
-        "10min_wind_avg_mph",
-        "rain_monthly_in",
-        "rain_yearly_in",
-        "wind_chill_F",
-        "heat_index_F",
-        "thw_index_F"
-      ];
+        // ── DOM helpers ──────────────────────────────────
+        function set(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val || "—";
+        }
 
-      const csvLines = rows.map(r => [
-        r.logged_at    || "",
-        r.temperature  ?? "",
-        r.humidity     ?? "",
-        r.dewpoint     ?? "",
-        r.wind_speed   ?? "",
-        r.wind_dir     || "",
-        r.wind_avg_mph ?? "",
-        r.rain_monthly ?? "",
-        r.rain_yearly  ?? "",
-        r.wind_chill   ?? "",
-        r.heat_index   ?? "",
-        r.thw_index    ?? ""
-      ].join(","));
+        function bar(id, val, max) {
+            const el = document.getElementById(id);
+            if (el) el.style.width = Math.min(((parseFloat(val) || 0) / max) * 100, 100) + "%";
+        }
 
-      const csv  = [headers.join(","), ...csvLines].join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      const now  = new Date().toISOString().slice(0, 10);
-      a.href     = url;
-      a.download = `weather_history_${now}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+        // ── 30-Day CSV Download ──────────────────────────
+        async function downloadHistory() {
+            const btn = document.getElementById("downloadBtn");
+            btn.disabled = true;
+            btn.textContent = "Fetching...";
 
-    } catch (err) {
-      console.error(err);
-      alert("Download failed. Check your connection and try again.");
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = `
+            try {
+                const res = await fetch(
+                    `${SUPABASE_URL}/rest/v1/weather_history?order=logged_at.asc&limit=10000`,
+                    {
+                        headers: {
+                            "apikey": SUPABASE_KEY,
+                            "Authorization": `Bearer ${SUPABASE_KEY}`,
+                            "Range-Unit": "items",
+                            "Range": "0-9999"
+                        }
+                    }
+                );
+
+                if (!res.ok) throw new Error("Fetch failed: " + res.status);
+                const rows = await res.json();
+
+                if (!rows.length) {
+                    alert("No history data available yet. Data accumulates over time.");
+                    return;
+                }
+
+                const headers = [
+                    "logged_at",
+                    "temperature_F",
+                    "humidity_pct",
+                    "dewpoint_F",
+                    "wind_speed_mph",
+                    "wind_dir",
+                    "10min_wind_avg_mph",
+                    "rain_monthly_in",
+                    "rain_yearly_in",
+                    "wind_chill_F",
+                    "heat_index_F",
+                    "thw_index_F"
+                ];
+
+                const csvLines = rows.map(r => [
+                    r.logged_at || "",
+                    r.temperature ?? "",
+                    r.humidity ?? "",
+                    r.dewpoint ?? "",
+                    r.wind_speed ?? "",
+                    r.wind_dir || "",
+                    r.wind_avg_mph ?? "",
+                    r.rain_monthly ?? "",
+                    r.rain_yearly ?? "",
+                    r.wind_chill ?? "",
+                    r.heat_index ?? "",
+                    r.thw_index ?? ""
+                ].join(","));
+
+                const csv = [headers.join(","), ...csvLines].join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                const now = new Date().toISOString().slice(0, 10);
+                a.href = url;
+                a.download = `weather_history_${now}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+            } catch (err) {
+                console.error(err);
+                alert("Download failed. Check your connection and try again.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;">
           <path d="M12 3v13M7 11l5 5 5-5"/>
           <path d="M5 20h14"/>
         </svg>
         30-Day History`;
-    }
-  }
+            }
+        }
 
-  // ── Data fetch ───────────────────────────────────
-  async function fetchWeather() {
-    try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/weather_current?id=eq.1&select=*`,
-        { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
-      );
-      if (!res.ok) throw new Error("fetch failed");
-      const data = await res.json();
-      if (!data.length) throw new Error("no data");
+        // ── Data fetch ───────────────────────────────────
+        async function fetchWeather() {
+            try {
+                const res = await fetch(
+                    `${SUPABASE_URL}/rest/v1/weather_current?id=eq.1&select=*`,
+                    { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+                );
+                if (!res.ok) throw new Error("fetch failed");
+                const data = await res.json();
+                if (!data.length) throw new Error("no data");
 
-      const d        = data[0];
-      const tempF    = parseFloat(d.temperature) || 70;
-      const rainRate = parseFloat(d.rain_rate)   || 0;
-      const humidity = parseFloat(d.humidity)    || 50;
+                const d = data[0];
+                const tempF = parseFloat(d.temperature) || 70;
+                const rainRate = parseFloat(d.rain_rate) || 0;
+                const humidity = parseFloat(d.humidity) || 50;
 
-      applyBackground(tempF, d.station_time, rainRate);
-      rainRate > 0 ? startRain(Math.min(rainRate / 2, 1)) : stopRain();
+                applyBackground(tempF, d.station_time, rainRate);
+                rainRate > 0 ? startRain(Math.min(rainRate / 2, 1)) : stopRain();
 
-      document.getElementById("statusDot").className = "status-dot";
-      set("statusLabel", "Live");
+                document.getElementById("statusDot").className = "status-dot";
+                set("statusLabel", "Live");
 
-      if (d.updated_at) {
-        const dt = new Date(d.updated_at);
-        set("lastUpdated", "Updated " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-        set("footerTime",  dt.toLocaleDateString() + " " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-      }
+                if (d.updated_at) {
+                    const dt = new Date(d.updated_at);
+                    set("lastUpdated", "Updated " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+                    set("footerTime", dt.toLocaleDateString() + " " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+                }
 
-      const tempEl       = document.getElementById("temperature");
-      tempEl.innerHTML   = `${(d.temperature || "—").replace("F", "")}<span>°F</span>`;
-      tempEl.style.color = getTempColor(tempF);
-      set("tempSub",        `Feels like ${d.heat_index || "—"} · Dewpoint ${d.dewpoint || "—"}`);
-      set("conditionBadge", getCondition(tempF, rainRate, humidity));
+                const tempEl = document.getElementById("temperature");
+                tempEl.innerHTML = `${(d.temperature || "—").replace("F", "")}<span>°F</span>`;
+                tempEl.style.color = getTempColor(tempF);
+                set("tempSub", `Feels like ${d.heat_index || "—"} · Dewpoint ${d.dewpoint || "—"}`);
+                set("conditionBadge", getCondition(tempF, rainRate, humidity));
 
-      const avgRaw = d.wind_avg || "";
-      set("wind",     d.wind || "—");
-      set("windGust", avgRaw === "" ? "—" : avgRaw);
+                const avgRaw = d.wind_avg || "";
+                set("wind", d.wind || "—");
+                set("windGust", avgRaw === "" ? "—" : avgRaw);
 
-      const baroClean = (d.barometer || "").replace(/\s*&.*$/, "").trim();
-      set("humidity",    d.humidity     || "—");
-      set("dewpoint",    d.dewpoint     || "—");
-      set("barometer",   baroClean      || "—");
-      set("stationTime", d.station_time || "—");
+                const baroClean = (d.barometer || "").replace(/\s*&.*$/, "").trim();
+                set("humidity", d.humidity || "—");
+                set("dewpoint", d.dewpoint || "—");
+                set("barometer", baroClean || "—");
+                set("stationTime", d.station_time || "—");
 
-      set("rainToday",   d.rain_today   || "—");
-      set("rainRate",    d.rain_rate    || "—");
-      set("rainMonthly", d.rain_monthly || "—");
-      set("rainYearly",  d.rain_yearly  || "—");
-      bar("rainTodayBar",   d.rain_today,   2);
-      bar("rainMonthlyBar", d.rain_monthly, 5);
-      bar("rainYearlyBar",  d.rain_yearly, 20);
+                set("rainToday", d.rain_today || "—");
+                set("rainRate", d.rain_rate || "—");
+                set("rainMonthly", d.rain_monthly || "—");
+                set("rainYearly", d.rain_yearly || "—");
+                bar("rainTodayBar", d.rain_today, 2);
+                bar("rainMonthlyBar", d.rain_monthly, 5);
+                bar("rainYearlyBar", d.rain_yearly, 20);
 
-      document.getElementById("loader").classList.add("hidden");
+                document.getElementById("loader").classList.add("hidden");
 
-    } catch (err) {
-      console.error(err);
-      document.getElementById("statusDot").className = "status-dot offline";
-      set("statusLabel", "Offline");
-      document.getElementById("loader").classList.add("hidden");
-    }
-  }
+            } catch (err) {
+                console.error(err);
+                document.getElementById("statusDot").className = "status-dot offline";
+                set("statusLabel", "Offline");
+                document.getElementById("loader").classList.add("hidden");
+            }
+        }
 
-  // ── Init ─────────────────────────────────────────
-  resizeCanvas();
-  fetchWeather();
-  setInterval(fetchWeather, 60000);
+        // ── Init ─────────────────────────────────────────
+        resizeCanvas();
+        fetchWeather();
+        setInterval(fetchWeather, 60000);
 
-</script>
+    </script>
 </body>
+
 </html>
