@@ -55,14 +55,15 @@
     transition: opacity 2s ease;
   }
 
-  /* ── Main layout wrapper — CSS grid fills exactly one screen */
+  /* ── Main layout wrapper ────────────────────────── */
+  /* Removed comfort-grid row — redistributed fr units to hero and rain-grid */
   .container {
     position: relative;
     z-index: 10;
     height: 100vh;
     display: grid;
-    grid-template-rows: auto 3fr auto auto 1.4fr auto 1.4fr auto;
-    /* header | hero | section-label | grid | rain-grid | section-label | comfort-grid | footer */
+    grid-template-rows: auto 1.8fr auto auto auto auto;
+    /* header | hero | section-label | metrics-grid | section-label | rain-grid | footer */
     padding: 12px 20px 10px;
     gap: 6px;
   }
@@ -159,7 +160,6 @@
     min-height: 0;
   }
 
-  /* Subtle top-edge highlight on temp card */
   .hero-temp::before {
     content: '';
     position: absolute;
@@ -183,7 +183,6 @@
     margin-bottom: 6px;
   }
 
-  /* Large temperature number */
   .hero-value {
     font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
     font-size: clamp(72px, 10vw, 120px);
@@ -218,7 +217,6 @@
     margin-top: 6px;
   }
 
-  /* Wind speed values in hero */
   .wind-block { flex: 1; }
 
   .wind-value {
@@ -247,29 +245,20 @@
     flex-shrink: 0;
   }
 
-  /* ── metric cards ───────────────────────────────── */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 8px;
-    min-height: 0;
-  }
-
-  .grid .card:nth-child(1) { grid-column: span 4; }
-  .grid .card:nth-child(2) { grid-column: span 4; }
-  .grid .card:nth-child(3) { grid-column: span 4; }
-
-  .rain-grid {
+  /* ── Metrics row — now 4 equal columns ──────────── */
+  /* Previously 3 cards spanning 12-col grid.          */
+  /* Now 4 cards: Humidity, Dewpoint, Barometer, Time  */
+  .metrics-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
     min-height: 0;
   }
 
-  /* ── 3-column comfort cards ─────────────────────── */
-  .comfort-grid {
+  /* ── Rain grid — unchanged 4-col ───────────────── */
+  .rain-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
     min-height: 0;
   }
@@ -299,7 +288,6 @@
     line-height: 1;
   }
 
-  /* Thin progress bar under rain values */
   .rain-bar {
     height: 2px;
     background: rgba(255,255,255,0.12);
@@ -330,6 +318,51 @@
     color: var(--muted);
   }
 
+  /* ── Download button ────────────────────────────── */
+  #downloadBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    margin-top: 0;
+    font-family: 'Calibri', 'Candara', 'Segoe UI', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #111111;
+    background: #ffffff;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+  }
+
+  #downloadBtn:hover {
+    background: #e0e0e0;
+    transform: translateY(-1px);
+  }
+
+  #downloadBtn:active {
+    transform: translateY(0);
+  }
+
+  #downloadBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  #downloadBtn svg {
+    width: 13px; height: 13px;
+    fill: none;
+    stroke: #111111;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
   /* ── Loading spinner overlay ────────────────────── */
   .loading-overlay {
     position: fixed;
@@ -342,10 +375,7 @@
     transition: opacity 0.6s;
   }
 
-  .loading-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
 
   .loader {
     width: 36px; height: 36px;
@@ -357,7 +387,6 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── Entrance animation for cards ───────────────── */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -370,28 +399,27 @@
 
   /* ── Mobile: reflow to 2-col where needed ───────── */
   @media (max-width: 768px) {
-    .hero          { grid-template-columns: 1fr; }
-    .grid          { grid-template-columns: repeat(2, 1fr); }
-    .rain-grid     { grid-template-columns: repeat(2, 1fr); }
-    .comfort-grid  { grid-template-columns: repeat(2, 1fr); }
+    .hero         { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .rain-grid    { grid-template-columns: repeat(2, 1fr); }
   }
 
 </style>
 </head>
 <body>
 
-<!-- Background layers (sky gradient, temp tint, rain) -->
+<!-- Background layers -->
 <div id="skyBg"></div>
 <div id="skyGlow"></div>
 <canvas id="rainCanvas"></canvas>
 
-<!-- Spinner shown until first data fetch completes -->
+<!-- Spinner -->
 <div class="loading-overlay" id="loader"><div class="loader"></div></div>
 
 <!-- ── Main layout ────────────────────────────────── -->
 <div class="container">
 
-  <!-- Station identity + live status -->
+  <!-- Header -->
   <header>
     <div>
       <div class="station-id">Davis Vantage Pro 2</div>
@@ -407,13 +435,22 @@
     </div>
   </header>
 
-  <!-- Hero: temperature (left) + wind (right) -->
+  <!-- Hero: temperature + wind -->
   <div class="hero">
     <div class="hero-temp glass">
       <div class="hero-label">Outside Temperature</div>
       <div class="hero-value" id="temperature">—<span>°F</span></div>
       <div class="hero-sub" id="tempSub">Feels like — · Dewpoint —</div>
-      <div class="condition-badge" id="conditionBadge">—</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:8px;">
+        <div class="condition-badge" id="conditionBadge">—</div>
+        <button id="downloadBtn" onclick="downloadHistory()">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3v13M7 11l5 5 5-5"/>
+            <path d="M5 20h14"/>
+          </svg>
+          Download 30-Day History
+        </button>
+      </div>
     </div>
     <div class="hero-wind glass">
       <div class="wind-block">
@@ -427,8 +464,9 @@
     </div>
   </div>
 
-  <!-- Core metrics row -->
-  <div class="grid">
+  <!-- Core metrics — 4 cards now that comfort indices are removed -->
+  <div class="section-label">Conditions</div>
+  <div class="metrics-grid">
     <div class="card glass">
       <div class="card-label">Humidity</div>
       <div class="card-value blue" id="humidity">—</div>
@@ -438,12 +476,16 @@
       <div class="card-value" id="dewpoint">—</div>
     </div>
     <div class="card glass">
+      <div class="card-label">Barometer</div>
+      <div class="card-value" id="barometer">—</div>
+    </div>
+    <div class="card glass">
       <div class="card-label">Station Time</div>
       <div class="card-value" style="font-size:clamp(14px,1.8vw,22px);" id="stationTime">—</div>
     </div>
   </div>
 
-  <!-- Precipitation section -->
+  <!-- Precipitation -->
   <div class="section-label">Precipitation</div>
   <div class="rain-grid">
     <div class="card glass">
@@ -467,24 +509,7 @@
     </div>
   </div>
 
-  <!-- Comfort indices section -->
-  <div class="section-label">Comfort Indices</div>
-  <div class="comfort-grid">
-    <div class="card glass">
-      <div class="card-label">Wind Chill</div>
-      <div class="card-value" id="windChill">—</div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">Heat Index</div>
-      <div class="card-value warm" id="heatIndex">—</div>
-    </div>
-    <div class="card glass">
-      <div class="card-label">THW Index</div>
-      <div class="card-value" id="thwIndex">—</div>
-    </div>
-  </div>
-
-  <!-- Timestamp footer -->
+  <!-- Footer -->
   <footer>
     <span>Davis Vantage Pro 2 · Updates every 5 minutes</span>
     <span id="footerTime">—</span>
@@ -508,7 +533,6 @@
     canvas.height = window.innerHeight;
   }
 
-  // Build a pool of raindrop objects scaled to intensity
   function initDrops(n) {
     drops = Array.from({ length: n }, () => ({
       x:     Math.random() * canvas.width,
@@ -519,7 +543,6 @@
     }));
   }
 
-  // Render loop — draws each drop as a short angled stroke
   function drawRain() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drops.forEach(d => {
@@ -554,8 +577,6 @@
   window.addEventListener("resize", resizeCanvas);
 
   // ── Sky background helpers ───────────────────────
-
-  // Parse Davis station time string ("3:47p") into a 24-hr hour int
   function parseHour(stationTimeStr) {
     if (!stationTimeStr) return new Date().getHours();
     const m = stationTimeStr.match(/(\d+):(\d+)([ap])/);
@@ -566,17 +587,15 @@
     return h;
   }
 
-  // Map time-of-day to a 4-stop gradient palette
   function getSkyColors(hour) {
-    if (hour >= 5  && hour < 7)  return ["#0d0520","#3d1a6e","#c45c3c","#f5a623"]; // dawn
-    if (hour >= 7  && hour < 11) return ["#0d1b3e","#1a3a6e","#2e6fa8","#87ceeb"]; // morning
-    if (hour >= 11 && hour < 15) return ["#0a1628","#1a3a6e","#2980b9","#5dade2"]; // midday
-    if (hour >= 15 && hour < 18) return ["#0d1b3e","#1a3a6e","#2471a3","#7fb3d3"]; // afternoon
-    if (hour >= 18 && hour < 20) return ["#1a0a2e","#6e2a1a","#c0392b","#e67e22"]; // sunset
-    return ["#030510","#07091a","#0d0f2a","#111428"];                               // night
+    if (hour >= 5  && hour < 7)  return ["#0d0520","#3d1a6e","#c45c3c","#f5a623"];
+    if (hour >= 7  && hour < 11) return ["#0d1b3e","#1a3a6e","#2e6fa8","#87ceeb"];
+    if (hour >= 11 && hour < 15) return ["#0a1628","#1a3a6e","#2980b9","#5dade2"];
+    if (hour >= 15 && hour < 18) return ["#0d1b3e","#1a3a6e","#2471a3","#7fb3d3"];
+    if (hour >= 18 && hour < 20) return ["#1a0a2e","#6e2a1a","#c0392b","#e67e22"];
+    return ["#030510","#07091a","#0d0f2a","#111428"];
   }
 
-  // Subtle temperature-based color tint layered over the sky
   function getTempTint(tempF, rainRate) {
     if (rainRate > 0) return "rgba(30,50,90,0.28)";
     if (tempF >= 95)  return "rgba(180,50,0,0.15)";
@@ -588,7 +607,6 @@
     return null;
   }
 
-  // Compose and apply sky + stars (night only) + temp tint
   function applyBackground(tempF, stationTimeStr, rainRate) {
     const hour    = parseHour(stationTimeStr);
     const c       = getSkyColors(hour);
@@ -597,7 +615,6 @@
 
     let bgStr = `linear-gradient(180deg, ${c[0]} 0%, ${c[1]} 40%, ${c[2]} 75%, ${c[3]} 100%)`;
 
-    // Night mode adds scattered star points via radial gradients
     if (isNight) {
       bgStr = `
         radial-gradient(1px 1px at 15% 12%, rgba(255,255,255,0.7) 0%, transparent 100%),
@@ -620,7 +637,6 @@
     else       { glow.style.opacity = "0"; }
   }
 
-  // Temperature → display color (cold=blue → hot=red)
   function getTempColor(t) {
     if (t >= 100) return "#ff2200";
     if (t >= 90)  return "#ff5500";
@@ -633,7 +649,6 @@
     return "#00aaff";
   }
 
-  // Derive a human-readable condition string from sensor values
   function getCondition(t, rainRate, hum) {
     if (rainRate > 0.5) return "Heavy Rain";
     if (rainRate > 0)   return "Light Rain";
@@ -648,20 +663,98 @@
   }
 
   // ── DOM helpers ──────────────────────────────────
-
   function set(id, val) {
     const el = document.getElementById(id);
     if (el) el.textContent = val || "—";
   }
 
-  // Fills a rain progress bar to (val / max) %
   function bar(id, val, max) {
     const el = document.getElementById(id);
     if (el) el.style.width = Math.min(((parseFloat(val) || 0) / max) * 100, 100) + "%";
   }
 
-  // ── Data fetch ───────────────────────────────────
+  // ── 30-Day CSV Download ──────────────────────────
+  async function downloadHistory() {
+    const btn = document.getElementById("downloadBtn");
+    btn.disabled = true;
+    btn.textContent = "Fetching...";
 
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/weather_history?order=logged_at.asc&limit=10000`,
+        {
+          headers: {
+            "apikey": SUPABASE_KEY,
+            "Authorization": `Bearer ${SUPABASE_KEY}`,
+            "Range-Unit": "items",
+            "Range": "0-9999"
+          }
+        }
+      );
+
+      if (!res.ok) throw new Error("Fetch failed: " + res.status);
+      const rows = await res.json();
+
+      if (!rows.length) {
+        alert("No history data available yet. Data accumulates over time.");
+        return;
+      }
+
+      const headers = [
+        "logged_at",
+        "temperature_F",
+        "humidity_pct",
+        "dewpoint_F",
+        "wind_speed_mph",
+        "wind_dir",
+        "10min_wind_avg_mph",
+        "rain_monthly_in",
+        "rain_yearly_in",
+        "wind_chill_F",
+        "heat_index_F",
+        "thw_index_F"
+      ];
+
+      const csvLines = rows.map(r => [
+        r.logged_at    || "",
+        r.temperature  ?? "",
+        r.humidity     ?? "",
+        r.dewpoint     ?? "",
+        r.wind_speed   ?? "",
+        r.wind_dir     || "",
+        r.wind_avg_mph ?? "",
+        r.rain_monthly ?? "",
+        r.rain_yearly  ?? "",
+        r.wind_chill   ?? "",
+        r.heat_index   ?? "",
+        r.thw_index    ?? ""
+      ].join(","));
+
+      const csv  = [headers.join(","), ...csvLines].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      const now  = new Date().toISOString().slice(0, 10);
+      a.href     = url;
+      a.download = `weather_history_${now}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert("Download failed. Check your connection and try again.");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;">
+          <path d="M12 3v13M7 11l5 5 5-5"/>
+          <path d="M5 20h14"/>
+        </svg>
+        30-Day History`;
+    }
+  }
+
+  // ── Data fetch ───────────────────────────────────
   async function fetchWeather() {
     try {
       const res = await fetch(
@@ -677,56 +770,41 @@
       const rainRate = parseFloat(d.rain_rate)   || 0;
       const humidity = parseFloat(d.humidity)    || 50;
 
-      // Update sky and rain animation
       applyBackground(tempF, d.station_time, rainRate);
       rainRate > 0 ? startRain(Math.min(rainRate / 2, 1)) : stopRain();
 
-      // Status indicator
       document.getElementById("statusDot").className = "status-dot";
       set("statusLabel", "Live");
 
-      // Timestamps
       if (d.updated_at) {
         const dt = new Date(d.updated_at);
         set("lastUpdated", "Updated " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         set("footerTime",  dt.toLocaleDateString() + " " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
       }
 
-      // Temperature hero card
       const tempEl       = document.getElementById("temperature");
       tempEl.innerHTML   = `${(d.temperature || "—").replace("F", "")}<span>°F</span>`;
       tempEl.style.color = getTempColor(tempF);
       set("tempSub",        `Feels like ${d.heat_index || "—"} · Dewpoint ${d.dewpoint || "—"}`);
       set("conditionBadge", getCondition(tempF, rainRate, humidity));
 
-      // Wind hero card
       const avgRaw = d.wind_avg || "";
-      const avgVal = avgRaw === "" ? "—" : avgRaw;
-      set("wind",     d.wind  || "—");
-      set("windGust", avgVal);
+      set("wind",     d.wind || "—");
+      set("windGust", avgRaw === "" ? "—" : avgRaw);
 
-      // Core metric cards
-      // Barometer comes from Davis as "29.92 in & Falling" — show just the number + in
-      const baroRaw = d.barometer || "";
-      const baroClean = baroRaw.replace(/\s*&.*$/, "").trim(); // strip " & Falling" etc.
+      const baroClean = (d.barometer || "").replace(/\s*&.*$/, "").trim();
       set("humidity",    d.humidity     || "—");
       set("dewpoint",    d.dewpoint     || "—");
       set("barometer",   baroClean      || "—");
       set("stationTime", d.station_time || "—");
 
-      // Precipitation cards + progress bars
       set("rainToday",   d.rain_today   || "—");
       set("rainRate",    d.rain_rate    || "—");
       set("rainMonthly", d.rain_monthly || "—");
       set("rainYearly",  d.rain_yearly  || "—");
-      bar("rainTodayBar",   d.rain_today,    2);
-      bar("rainMonthlyBar", d.rain_monthly,  5);
-      bar("rainYearlyBar",  d.rain_yearly,  20);
-
-      // Comfort index cards
-      set("windChill", d.wind_chill || "—");
-      set("heatIndex", d.heat_index || "—");
-      set("thwIndex",  d.thw_index  || "—");
+      bar("rainTodayBar",   d.rain_today,   2);
+      bar("rainMonthlyBar", d.rain_monthly, 5);
+      bar("rainYearlyBar",  d.rain_yearly, 20);
 
       document.getElementById("loader").classList.add("hidden");
 
@@ -741,7 +819,7 @@
   // ── Init ─────────────────────────────────────────
   resizeCanvas();
   fetchWeather();
-  setInterval(fetchWeather, 60000); // re-poll every 60 seconds
+  setInterval(fetchWeather, 60000);
 
 </script>
 </body>
